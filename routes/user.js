@@ -41,7 +41,7 @@ router.post('/login', function(req, res, next) {
 
 // Singup User
 router.post('/', function(req, res, next) {
-    var user = new User({
+    var newUser = new User({
         email: req.body.email,
         password: bcrypt.hashSync(req.body.password, 10),
         role: 'tempUser'
@@ -66,37 +66,37 @@ router.post('/', function(req, res, next) {
                 error: { message: "Given user's email is invalid" }
             })
         }
-    })
-    user.save(function(err, result) {
-        if (err) {
-            return res.status(500).json({
-                title: "An error occured",
-                error: err
-            })
-        }
-        if (user) {
-            return res.status(401).json({
-                title: "Email has token",
-                error: { message: "User with this email has allready exist" }
-            })
-        }
-        if (!isEmailValid(req.body.email)) {
-            return res.status(401).json({
-                title: "Invalid email",
-                error: { message: "Given user's email is invalid" }
-            })
-        }
-        res.render('confirm-email', { link: 'http://localhost:3000/confirm-email/' + result._id }, (err, html) => {
+        newUser.save(function(err, result) {
             if (err) {
                 return res.status(500).json({
-                    title: "Email did not send",
+                    title: "An error occured",
                     error: err
                 })
             }
-            sendEmail(req.body.email, "Подтверждение адреса электронной почты", html)
-        })
-        res.status(201).json({
-            message: 'User singup'
+            if (user) {
+                return res.status(401).json({
+                    title: "Email has token",
+                    error: { message: "User with this email has allready exist" }
+                })
+            }
+            if (!isEmailValid(req.body.email)) {
+                return res.status(401).json({
+                    title: "Invalid email",
+                    error: { message: "Given user's email is invalid" }
+                })
+            }
+            res.render('confirm-email', { link: 'https://ga.stackblitz.io/confirm-email/' + result._id }, (err, html) => {
+                if (err) {
+                    return res.status(500).json({
+                        title: "Email did not send",
+                        error: err
+                    })
+                }
+                sendEmail(req.body.email, "Подтверждение адреса электронной почты", html)
+            })
+            res.status(201).json({
+                message: 'User singup'
+            })
         })
     })
 })
