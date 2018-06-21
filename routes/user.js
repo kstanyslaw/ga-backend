@@ -29,7 +29,7 @@ router.post('/login', function(req, res, next) {
                 error: { message: "Invalid password" }
             })
         }
-        var token = jwt.sign({ user: user }, 'GQ9UPbT3m3VNfgYd', { expiresIn: 7200 });
+        var token = jwt.sign({ user: user }, 'GQ9UPbT3m3VNfgYd');
         res.status(200).json({
             message: "Succesfully logged in",
             token: token,
@@ -46,7 +46,6 @@ router.post('/', function(req, res, next) {
         password: bcrypt.hashSync(req.body.password, 10),
         role: 'tempUser'
     });
-    console.log("PATH: " + req.body.path);    
     User.findOne({ email: req.body.email }, function(err, user) {
         if (err) {
             return res.status(500).json({
@@ -73,12 +72,12 @@ router.post('/', function(req, res, next) {
                     error: err
                 })
             }
-            if (user) {
-                return res.status(401).json({
-                    title: "Email has token",
-                    error: { message: "User with this email has allready exist" }
-                })
-            }
+            // if (user) {
+            //     return res.status(401).json({
+            //         title: "Email has token",
+            //         error: { message: "User with this email has allready exist" }
+            //     })
+            // }
             if (!isEmailValid(req.body.email)) {
                 return res.status(401).json({
                     title: "Invalid email",
@@ -101,6 +100,74 @@ router.post('/', function(req, res, next) {
     })
 })
 
+// Send Reset Password Email
+router.post('/reset-password', function(req, res, next) {
+    User.findOne({ email: req.body.email }, function(err, user) {
+        if (err) {
+            return res.status(500).json({
+                title: "An Error Occured",
+                error: err
+            })
+        }
+        if (!user) {
+            return res.status(401).json({
+                title: "No user found",
+                error: { message: "User with this email could not be found" }
+            })
+        }
+        var token = jwt.sign({ user: user }, 'GQ9UPbT3m3VNfgYd');
+        res.render('reset-password', { link: ('https://grants-agregator.herokuapp.com/reset-password/' + token) }, (err, html) => {
+            if (err) {
+                return res.status(500).json({
+                    title: "Email did not send",
+                    error: err
+                })
+            }
+            sendEmail(req.body.email, "Сброс пароля", html)
+        })
+        res.status(201).json({
+            message: 'Reset password email send'
+        })
+    })
+})
+
+// Change Password
+router.patch('/change-password', function(req, res, next) {
+    var decoded = jwt.decode(req.body.token);
+    User.findById(decoded.user._id, function(err, user) {
+        if (err) {
+            return res.status(500).json({
+                title: "An Error Occured",
+                error: err
+            })
+        }
+        if (!user) {
+            return res.status(401).json({
+                title: "No user found",
+                error: { message: "User with this email could not be found" }
+            })
+        }
+        if(req.body.newPassword !== req.body.repeatPassword) {
+            return res.status(401).json({
+                title: "Passwords doesn't match",
+                error: { message: "New password and repeated password does not match" }
+            })
+        }
+        user.password = bcrypt.hashSync(req.body.newPassword, 10);
+        user.save(function(err, result) {
+            if (err) {
+                return res.status(500).json({
+                    title: "User's password hasn't update",
+                    error: err
+                })
+            }
+            res.status(200).json({
+                title: 'Success',
+                message: 'Password has allready changed'
+            })
+        })
+    })
+})
 
 // Confirm Email
 router.patch('/confirm-email', function(req, res, next) {
