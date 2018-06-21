@@ -85,7 +85,7 @@ router.post('/', function(req, res, next) {
                     error: { message: "Given user's email is invalid" }
                 })
             }
-            res.render('confirm-email', { link: 'https://ga.stackblitz.io/confirm-email/' + result._id }, (err, html) => {
+            res.render('confirm-email', { link: ('https://grants-agregator.herokuapp.com/confirm-email/' + result._id) }, (err, html) => {
                 if (err) {
                     return res.status(500).json({
                         title: "Email did not send",
