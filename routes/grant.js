@@ -1,8 +1,37 @@
 const express = require('express');
 var jwt = require('jsonwebtoken');
 var router = express.Router();
+var multer = require('multer');
 
 const Grant = require('../models/grant');
+
+var MIME_TYPE_MAP = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg'
+}
+
+var storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const isValid = MIME_TYPE_MAP[file.mimetype];
+        let error = new Error("Invalid mime type");
+        if (isValid) {
+            error = null;
+        }
+        cb(error, './images');
+    },
+    filename: (req, file, cb) => {
+        const name = file.originalname.toLowerCase().split(' ').join('-');
+        const ext = MIME_TYPE_MAP[file.mimetype];
+        cb(null, name + '-' + Date.now() + '.' + ext);
+    }
+});
+
+// Upload File
+router.post('/file', multer({storage: storage}).single('image'), (req, res, next) => {
+    const url = req.protocol + '://' + req.get('host');
+    console.log('path: ' (url + '/images/' + req.file.filename));
+})
 
 // Get Grants
 router.get('/', function(req, res, next) {
