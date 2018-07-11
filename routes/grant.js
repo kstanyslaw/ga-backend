@@ -4,6 +4,7 @@ var router = express.Router();
 var multer = require('multer');
 
 const Grant = require('../models/grant');
+var userRoles = require('./user-roles.enum');
 
 var MIME_TYPE_MAP = {
     'image/png': 'png',
@@ -51,23 +52,47 @@ router.get('/', function(req, res, next) {
 
 // Find one Grant by id 
 router.get('/details/:id', function(req, res, next) {
-    Grant.findById(req.params.id, function(err, grant) {
-        if (err) {
-            return res.status(500).json({
-                title: 'An error occured',
-                error: err
+    var role = req.query.token !== ''
+    ? jwt.decode(req.query.token).user.role
+    : null;
+    Grant.findById(req.params.id)
+        .exec(function(err, grant) {
+            if (err) {
+                return res.status(500).json({
+                    title: 'An error occured',
+                    error: err
+                })
+            }
+            if (!grant) {
+                return res.status(500).json({
+                    title: 'No grants found',
+                    error: err
+                })
+            }
+            if (userRoles[role] < userRoles.singlePaid || !role) {
+                const modifiedGrant = {
+                    _id: grant._id,
+                    name: grant.name,
+                    dateStart: grant.dateStart,
+                    deadline: grant.deadline,
+                    price: grant.price,
+                    geoScale: grant.geoScale,
+                    grantee: grant.grantee,
+                    region: grant.region,
+                    city: grant.city,
+                    description: grant.description,
+                    categories: grant.categories
+                }
+                return res.status(200).json({
+                    message: 'Success',
+                    obj: modifiedGrant
+                })
+            }
+            // return fields = '_id name grantor url dateStart deadline price geoScale grantee region city description categories';
+            res.status(200).json({
+                message: 'Success',
+                obj: grant
             })
-        }
-        if (!grant) {
-            return res.status(500).json({
-                title: 'No grants found',
-                error: err
-            })
-        }
-        res.status(200).json({
-            message: 'Success',
-            obj: grant
-        })
     })
 })
 
@@ -114,7 +139,7 @@ router.delete('/:id', function(req, res, next) {
                 error: {message: 'Grant not found!'}
             })
         }
-        if (decoded.user.role !== 'administrator') {
+        if (userRoles[decoded.user.role] < userRoles.moderator) {
             return res.status(401).json({
                 title: 'Permission denied!',
                 error: {message: "User's role does not match"}
@@ -135,4 +160,4 @@ router.delete('/:id', function(req, res, next) {
     })
 })
 
-module.exports = router;
+module.exports = router;          // grantId: grantId,
